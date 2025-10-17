@@ -7,7 +7,7 @@ function App() {
 
   useEffect(() => {
     // Ambil pesan dari server Node.js
-    fetch('http://localhost:5000')
+    fetch('http://localhost:3001')
       .then(res => res.json())
       .then(data => setServerMessage(data.message))
       .catch(err => console.error('Error fetching data:', err));
