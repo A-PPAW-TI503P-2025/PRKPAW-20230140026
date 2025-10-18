@@ -3,12 +3,9 @@ const cors = require('cors');
 const app = express();
 const PORT = 3001;
 
-// 1. Definisikan Route (Lakukan require sebelum server mulai mendengarkan)
 const bookRoutes = require('./routes/books');
 
-// Middleware
 app.use(cors()); 
-// MIDDELWARE PENTING: Untuk mem-parsing JSON body
 app.use(express.json()); 
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
@@ -19,7 +16,6 @@ app.get('/', (req, res) => {
   res.send('Home Page for API');
 });
 
-// 2. Gunakan Route (Pasang route ke aplikasi sebelum app.listen)
 app.use('/api/books', bookRoutes); 
 
 app.listen(PORT, () => {
