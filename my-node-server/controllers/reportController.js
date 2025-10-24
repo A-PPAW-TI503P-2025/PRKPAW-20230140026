@@ -1,4 +1,4 @@
-const presensiRecords = require("D:\Tugas\Semester 5\PAW\PRKPAW-20230140026\my-node-server\Data\presensiData");
+const presensiRecords = require("../Data/presensidata");
 exports.getDailyReport = (req, res) => {
   console.log("Controller: Mengambil data laporan harian dari array...");
   res.json({
@@ -6,4 +6,3 @@ exports.getDailyReport = (req, res) => {
     data: presensiRecords,
   });
 };
-

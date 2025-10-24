@@ -1,79 +1,79 @@
-const presensiRecords = require("D:\Tugas\Semester 5\PAW\PRKPAW-20230140026\my-node-server\Data\presensiData");
+const presensiRecords = require("../Data/presensidata");
 const { format } = require("date-fns-tz");
 const timeZone = "Asia/Jakarta";
 
 exports.CheckIn = (req, res) => {
-const { id: userId, nama: userName } = req.user;
-const waktuSekarang = new Date();
-const existingRecord = presensiRecords.find(
+  const { id: userId, nama: userName } = req.user;
+  const waktuSekarang = new Date();
+  const existingRecord = presensiRecords.find(
     (record) => record.userId === userId && record.checkOut === null
-);
-if (existingRecord) {
+  );
+  if (existingRecord) {
     return res
-        .status(400)
-        .json({ message: "Anda sudah melakukan check-in hari ini." });
-}
-const newRecord = {
+      .status(400)
+      .json({ message: "Anda sudah melakukan check-in hari ini." });
+  }
+  const newRecord = {
     userId,
     nama: userName,
     checkIn: waktuSekarang,
     checkOut: null,
-};
-presensiRecords.push(newRecord);
+  };
+  presensiRecords.push(newRecord);
 
-const formattedData = {
+  const formattedData = {
     ...newRecord,
     checkIn: format(newRecord.checkIn, "yyyy-MM-dd HH:mm:ssXXX", { timeZone }),
-};
-console.log(
+  };
+  console.log(
     `DATA TERUPDATE: Karyawan ${userName} (ID: ${userId}) melakukan check-in.`
-);
+  );
 
-res.status(201).json({
+  res.status(201).json({
     message: `Halo ${userName}, check-in Anda berhasil pada pukul ${format(
-        waktuSekarang,
-        "HH:mm:ss",
-        { timeZone }
+      waktuSekarang,
+      "HH:mm:ss",
+      { timeZone }
     )} WIB`,
     data: formattedData,
-    });
+  });
 };
 
 
 
 exports.CheckOut = (req, res) => {
-const { id: userId, nama: userName } = req.user;
-const waktuSekarang = new Date();
-const recordToUpdate = presensiRecords.find(
+  const { id: userId, nama: userName } = req.user;
+  const waktuSekarang = new Date();
+  const recordToUpdate = presensiRecords.find(
     (record) => record.userId === userId && record.checkOut === null
-);
+  );
 
-if (!recordToUpdate) {
+  if (!recordToUpdate) {
     return res.status(404).json({
-        message: "Tidak ditemukan catatan check-in yang aktif untuk Anda.",
+      message: "Tidak ditemukan catatan check-in yang aktif untuk Anda.",
     });
-}
-recordToUpdate.checkOut = waktuSekarang;
-const formattedData = {
+  }
+  recordToUpdate.checkOut = waktuSekarang;
+  const formattedData = {
     ...recordToUpdate,
     checkIn: format(recordToUpdate.checkIn, "yyyy-MM-dd HH:mm:ssXXX", {
-        timeZone,
+      timeZone,
     }),
     checkOut: format(recordToUpdate.checkOut, "yyyy-MM-dd HH:mm:ssXXX", {
-        timeZone,
+      timeZone,
     }),
-};
+  };
 
-console.log(
+  console.log(
     `DATA TERUPDATE: Karyawan ${userName} (ID: ${userId}) melakukan check-out.`
-);
+  );
 
-res.json({
+  res.json({
     message: `Selamat jalan ${userName}, check-out Anda berhasil pada pukul ${format(
-        waktuSekarang,
-        "HH:mm:ss",
-        { timeZone }
+      waktuSekarang,
+      "HH:mm:ss",
+      { timeZone }
     )} WIB`,
     data: formattedData,
-    });
+  });
 };
