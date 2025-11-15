@@ -1,32 +1,27 @@
-import React, { useState, useEffect } from 'react';
-import './App.css';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import LoginPage from './components/LoginPage';
+import RegisterPage from './components/RegisterPage';
+import DashboardPage from './components/DashboardPage';
 
 function App() {
-  const [name, setName] = useState('');
-  const [serverMessage, setServerMessage] = useState('');
-
-  useEffect(() => {
-    // Ambil pesan dari server Node.js
-    fetch('http://localhost:5000')
-      .then(res => res.json())
-      .then(data => setServerMessage(data.message))
-      .catch(err => console.error('Error fetching data:', err));
-  }, []);
-
   return (
-    <div className="App">
-      <h1>Praktikum 1 - Pengembangan Aplikasi Web</h1>
-      <p>{serverMessage}</p>
-
-      <input
-        type="text"
-        placeholder="Masukkan nama kamu..."
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      />
-      <h2>{name ? `Hello, ${name}!` : 'Silakan ketik nama di atas'}</h2>
-    </div>
+    <Router>
+      <div>
+        {/* Navigasi ini bisa dihapus jika tidak diperlukan */}
+        <nav className="p-4 bg-gray-100">
+          <Link to="/login" className="mr-4">Login</Link>
+          <Link to="/register">Register</Link>
+        </nav>
+        
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/" element={<LoginPage />} /> 
+        </Routes>
+      </div>
+    </Router>
   );
 }
-
 export default App;
