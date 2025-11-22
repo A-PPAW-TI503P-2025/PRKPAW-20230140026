@@ -1,8 +1,13 @@
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+
 function ReportPage() {
   const [reports, setReports] = useState([]);
   const [error, setError] = useState(null);
-  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
+
+  const navigate = useNavigate();
 
   const fetchReports = async (query) => {
     const token = localStorage.getItem("token");
@@ -18,16 +23,23 @@ function ReportPage() {
         },
       };
 
-      
+      const url = query
+        ? `http://localhost:3001/api/reports/daily?nama=${query}`
+        : "http://localhost:3001/api/reports/daily";
+
+      const response = await axios.get(url, config);
+
+      setReports(response.data);
       setError(null);
     } catch (err) {
-      
+      setError("Gagal mengambil data laporan.");
     }
   };
 
   useEffect(() => {
     fetchReports("");
-  }, [navigate]);
+  }, []);
+
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     fetchReports(searchTerm);
@@ -98,11 +110,8 @@ function ReportPage() {
                 ))
               ) : (
                 <tr>
-                  <td
-                    colSpan="3"
-                    className="px-6 py-4 text-center text-gray-500"
-                  >
-                    Tidak ada data yang ditemukan.
+                  <td colSpan="3" className="px-6 py-4 text-center text-gray-500">
+                    Tidak ada data ditemukan.
                   </td>
                 </tr>
               )}
@@ -115,4 +124,3 @@ function ReportPage() {
 }
 
 export default ReportPage;
-
