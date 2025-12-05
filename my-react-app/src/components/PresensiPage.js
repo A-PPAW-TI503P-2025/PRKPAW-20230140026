@@ -1,83 +1,198 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import "leaflet/dist/leaflet.css";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
-function getToken() {
-  return localStorage.getItem("token");
-}
+// Leaflet
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import L from "leaflet";
+
+import icon from "leaflet/dist/images/marker-icon.png";
+import iconShadow from "leaflet/dist/images/marker-shadow.png";
+
+// Fix default icon
+let DefaultIcon = L.icon({
+  iconUrl: icon,
+  shadowUrl: iconShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
+L.Marker.prototype.options.icon = DefaultIcon;
 
 function PresensiPage() {
+  const navigate = useNavigate();
+
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [time, setTime] = useState(new Date());
+  const [coords, setCoords] = useState(null);
 
+  // Update jam setiap detik
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Ambil lokasi user
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setError("Browser tidak mendukung geolocation.");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setCoords({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
+      },
+      () => setError("Gagal mengambil lokasi. Izinkan akses GPS.")
+    );
+  }, []);
+
+  const getToken = () => localStorage.getItem("token");
+
+  const handleSessionError = (err) => {
+    if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+      localStorage.removeItem("token");
+      alert("Sesi habis. Silakan login kembali.");
+      navigate("/login");
+      return true;
+    }
+    return false;
+  };
+
+  // === CHECK-IN ===
   const handleCheckIn = async () => {
-    setError("");
+    setLoading(true);
     setMessage("");
+    setError("");
+
+    if (!coords) {
+      setError("Lokasi belum ditemukan.");
+      setLoading(false);
+      return;
+    }
 
     try {
-      const config = {
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-        },
-      };
+      const token = getToken();
+      if (!token) return navigate("/login");
 
-      const response = await axios.post(
-        "http://localhost:3001/api/attendance/check-in",
-        {},
-        config
+      const resp = await axios.post(
+        "http://localhost:3001/api/presensi/check-in",
+        {
+          latitude: coords.lat,
+          longitude: coords.lng,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      setMessage(response.data.message);
+      setMessage(resp.data.message);
     } catch (err) {
-      setError(err.response ? err.response.data.message : "Check-in gagal");
+      if (!handleSessionError(err)) {
+        setError(err.response?.data?.message || "Gagal Check-In.");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
+  // === CHECK-OUT ===
   const handleCheckOut = async () => {
-    setError("");
+    setLoading(true);
     setMessage("");
+    setError("");
 
     try {
-      const config = {
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-        },
-      };
+      const token = getToken();
+      if (!token) return navigate("/login");
 
-      const response = await axios.post(
-        "http://localhost:3001/api/attendance/check-out",
+      const resp = await axios.post(
+        "http://localhost:3001/api/presensi/check-out",
         {},
-        config
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      setMessage(response.data.message);
+      setMessage(resp.data.message);
     } catch (err) {
-      setError(err.response ? err.response.data.message : "Check-out gagal");
+      if (!handleSessionError(err)) {
+        setError(err.response?.data?.message || "Gagal Check-Out.");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md text-center">
-        <h2 className="text-3xl font-bold mb-6 text-gray-800">
-          Lakukan Presensi
+    <div className="min-h-screen bg-gray-100 flex justify-center items-center p-4">
+
+      <div className="bg-white w-full max-w-lg p-6 rounded-xl shadow-md border border-gray-200">
+
+        <h2 className="text-2xl font-bold text-gray-700 text-center mb-2">
+          Form Presensi
         </h2>
 
-        {message && <p className="text-green-600 mb-4">{message}</p>}
-        {error && <p className="text-red-600 mb-4">{error}</p>}
+        <p className="text-gray-600 text-center mb-4 font-mono text-lg">
+          {time.toLocaleTimeString("id-ID")} WIB
+        </p>
 
-        <div className="flex space-x-4">
+        {/* Map */}
+        {coords ? (
+          <div className="rounded-lg overflow-hidden border h-64 mb-5">
+            <MapContainer
+              center={[coords.lat, coords.lng]}
+              zoom={15}
+              style={{ height: "100%", width: "100%" }}
+            >
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <Marker position={[coords.lat, coords.lng]}>
+                <Popup>Lokasi Anda Sekarang</Popup>
+              </Marker>
+            </MapContainer>
+          </div>
+        ) : (
+          <div className="h-64 bg-gray-200 rounded-lg flex justify-center items-center text-gray-500 mb-5">
+            Mengambil lokasi...
+          </div>
+        )}
+
+        {/* Alert */}
+        {message && (
+          <div className="bg-green-100 text-green-700 p-3 rounded mb-3 text-sm font-semibold">
+            {message}
+          </div>
+        )}
+
+        {error && (
+          <div className="bg-red-100 text-red-600 p-3 rounded mb-3 text-sm font-semibold">
+            {error}
+          </div>
+        )}
+
+        {/* Tombol */}
+        <div className="space-y-3">
           <button
             onClick={handleCheckIn}
-            className="w-full py-3 px-4 bg-green-600 text-white font-semibold rounded-md shadow-sm hover:bg-green-700"
+            disabled={loading || !coords}
+            className={`w-full py-3 rounded-lg font-semibold text-white transition ${
+              loading || !coords
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-green-600 hover:bg-green-700"
+            }`}
           >
-            Check-In
+            {loading ? "Memproses..." : "Check-In"}
           </button>
 
           <button
             onClick={handleCheckOut}
-            className="w-full py-3 px-4 bg-red-600 text-white font-semibold rounded-md shadow-sm hover:bg-red-700"
+            disabled={loading}
+            className={`w-full py-3 rounded-lg font-semibold text-white transition ${
+              loading ? "bg-gray-400 cursor-not-allowed" : "bg-red-600 hover:bg-red-700"
+            }`}
           >
-            Check-Out
+            {loading ? "Memproses..." : "Check-Out"}
           </button>
         </div>
       </div>
