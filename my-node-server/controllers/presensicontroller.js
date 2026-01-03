@@ -1,14 +1,36 @@
 const { Presensi } = require("../models");
 const { format } = require("date-fns-tz");
 const timeZone = "Asia/Jakarta";
+const multer = require('multer');
+const path = require('path');
 
-// ... (kode import lainnya)
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/'); 
+  },
+  filename: (req, file, cb) => {
+    // Format nama file: userId-timestamp.jpg
+    cb(null, `${req.user.id}-${Date.now()}${path.extname(file.originalname)}`);
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith('image/')) {
+    cb(null, true);
+  } else {
+    cb(new Error('Hanya file gambar yang diperbolehkan!'), false);
+  }
+};
+
+exports.upload = multer({ storage: storage, fileFilter: fileFilter });
 
 exports.CheckIn = async (req, res) => {
   try {
     const { id: userId, nama: userName } = req.user;
     // === AMBIL DATA LOKASI DARI BODY ===
     const { latitude, longitude } = req.body; 
+    
+    const buktiFoto = req.file ? req.file.path : null; 
     
     const waktuSekarang = new Date();
 
@@ -27,7 +49,8 @@ exports.CheckIn = async (req, res) => {
       userId: userId,
       checkIn: waktuSekarang,
       latitude: latitude,   // Simpan Latitude
-      longitude: longitude  // Simpan Longitude
+      longitude: longitude,
+      buktiFoto: buktiFoto   // Simpan Bukti Foto
     });
 
     const formattedData = {
@@ -40,7 +63,7 @@ exports.CheckIn = async (req, res) => {
     };
 
     res.status(201).json({
-      message: `Halo ${userName}, check-in berhasil!`, // Pesan saya persingkat biar rapi
+      message: `Halo ${userName}, check-in berhasil!`, 
       data: formattedData,
     });
   } catch (error) {

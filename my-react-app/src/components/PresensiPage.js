@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react"; // Tambahkan useRef, useCallback
 import "leaflet/dist/leaflet.css";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import Webcam from 'react-webcam'; // Tambahkan import Webcam
 
 // Leaflet
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
@@ -19,7 +20,7 @@ let DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-function PresensiPage() {
+function PresensiPage() { // Nama fungsi tetap PresensiPage
   const navigate = useNavigate();
 
   const [message, setMessage] = useState("");
@@ -27,6 +28,17 @@ function PresensiPage() {
   const [loading, setLoading] = useState(false);
   const [time, setTime] = useState(new Date());
   const [coords, setCoords] = useState(null);
+
+  // --- Tambahan dari Modul ---
+  const [image, setImage] = useState(null); // State untuk menyimpan hasil capture [cite: 115]
+  const webcamRef = useRef(null); // Ref untuk akses komponen Webcam [cite: 116]
+
+  // Fungsi untuk mengambil foto (capture)
+  const capture = useCallback(() => {
+    const imageSrc = webcamRef.current.getScreenshot(); // Mengambil screenshot [cite: 118]
+    setImage(imageSrc); // Menyimpan imageSrc ke state [cite: 119]
+  }, [webcamRef]);
+  // -------------------------
 
   // Update jam setiap detik
   useEffect(() => {
@@ -64,14 +76,15 @@ function PresensiPage() {
     return false;
   };
 
-  // === CHECK-IN ===
+  // === CHECK-IN === (Diubah untuk mengirim FormData dengan foto)
   const handleCheckIn = async () => {
     setLoading(true);
     setMessage("");
     setError("");
 
-    if (!coords) {
-      setError("Lokasi belum ditemukan.");
+    // Tambahkan validasi foto
+    if (!coords || !image) {
+      setError("Lokasi dan Foto wajib ada!"); 
       setLoading(false);
       return;
     }
@@ -80,16 +93,25 @@ function PresensiPage() {
       const token = getToken();
       if (!token) return navigate("/login");
 
+      // Konversi Base64 Image URL ke Blob [cite: 127]
+      const blob = await (await fetch(image)).blob();
+
+      // Buat FormData [cite: 128, 129]
+      const formData = new FormData();
+      formData.append('latitude', coords.lat);
+      formData.append('longitude', coords.lng);
+      formData.append('image', blob, 'selfie.jpg');
+
+      // Kirim FormData [cite: 133, 135]
       const resp = await axios.post(
         "http://localhost:3001/api/presensi/check-in",
-        {
-          latitude: coords.lat,
-          longitude: coords.lng,
-        },
+        formData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       setMessage(resp.data.message);
+      setImage(null); // Reset foto setelah sukses check-in
+
     } catch (err) {
       if (!handleSessionError(err)) {
         setError(err.response?.data?.message || "Gagal Check-In.");
@@ -98,6 +120,7 @@ function PresensiPage() {
       setLoading(false);
     }
   };
+  // -------------------------
 
   // === CHECK-OUT ===
   const handleCheckOut = async () => {
@@ -158,6 +181,34 @@ function PresensiPage() {
           </div>
         )}
 
+        {/* --- Tambahkan Tampilan Kamera --- */}
+        <div className="my-4 border rounded-lg overflow-hidden bg-black">
+ 	        {image ? (
+ 	          <img src={image} alt="Selfie" className="w-full" />
+ 	        ) : (
+ 	          <Webcam
+ 	            audio={false}
+ 	            ref={webcamRef}
+ 	            screenshotFormat="image/jpeg"
+ 	            className="w-full"
+ 	          />
+ 	        )}
+ 	      </div>
+ 	
+ 	      <div className="mb-4">
+ 	        {!image ? (
+ 	          <button onClick={capture} className="bg-blue-500 text-white px-4 py-2 rounded w-full">
+ 	            Ambil Foto 📸
+ 	          </button>
+ 	        ) : (
+ 	          <button onClick={() => setImage(null)} className="bg-gray-500 text-white px-4 py-2 rounded w-full">
+ 	            Foto Ulang 🔄
+ 	          </button>
+ 	        )}
+ 	      </div>
+
+
+
         {/* Alert */}
         {message && (
           <div className="bg-green-100 text-green-700 p-3 rounded mb-3 text-sm font-semibold">
@@ -171,7 +222,7 @@ function PresensiPage() {
           </div>
         )}
 
-        {/* Tombol */}
+        {/* Tombol Check-in/out */}
         <div className="space-y-3">
           <button
             onClick={handleCheckIn}
@@ -200,4 +251,4 @@ function PresensiPage() {
   );
 }
 
-export default PresensiPage;
+export default PresensiPage; // Export tetap PresensiPage
