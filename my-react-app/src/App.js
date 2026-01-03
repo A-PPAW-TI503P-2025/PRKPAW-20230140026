@@ -9,6 +9,7 @@ import DashboardPage from './components/DashboardPage'; // Jika masih dipakai
 import PresensiPage from './components/PresensiPage';
 import Navbar from './components/NavBar';
 import ReportPage from './components/ReportPage';
+import SensorPage from './components/SensorPage'; 
 
 // === 1. Komponen PrivateRoute ===
 // (Mencegah user yang belum login masuk ke halaman presensi/dashboard)

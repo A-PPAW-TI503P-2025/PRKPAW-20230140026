@@ -29,7 +29,6 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DATE,
       allowNull: true,
     },
-    // === INI BAGIAN PENTING UNTUK TUGAS GEOLOCATION ===
     latitude: {
       type: DataTypes.DECIMAL(10, 8),
       allowNull: true
@@ -37,8 +36,11 @@ module.exports = (sequelize, DataTypes) => {
     longitude: {
       type: DataTypes.DECIMAL(11, 8),
       allowNull: true
+    },
+    buktiFoto: {
+      type: DataTypes.STRING,
+      allowNull: true
     }
-    // ==================================================
   }, {
     sequelize,
     modelName: 'Presensi',

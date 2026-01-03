@@ -78,44 +78,41 @@ function PresensiPage() { // Nama fungsi tetap PresensiPage
 
   // === CHECK-IN === (Diubah untuk mengirim FormData dengan foto)
   const handleCheckIn = async () => {
-    setLoading(true);
-    setMessage("");
-    setError("");
-
-    // Tambahkan validasi foto
-    if (!coords || !image) {
-      setError("Lokasi dan Foto wajib ada!"); 
-      setLoading(false);
+    if (!image) {
+      setError("Silakan ambil foto terlebih dahulu!");
       return;
     }
-
+    setLoading(true);
     try {
-      const token = getToken();
-      if (!token) return navigate("/login");
-
-      // Konversi Base64 Image URL ke Blob [cite: 127]
-      const blob = await (await fetch(image)).blob();
-
-      // Buat FormData [cite: 128, 129]
+      const token = localStorage.getItem("token");
+      
+      // 1. Ubah Base64 Image ke Blob agar bisa diterima Multer
+      const responseImage = await fetch(image);
+      const blob = await responseImage.blob();
+  
+      // 2. Gunakan FormData (PENTING!)
       const formData = new FormData();
-      formData.append('latitude', coords.lat);
-      formData.append('longitude', coords.lng);
-      formData.append('image', blob, 'selfie.jpg');
-
-      // Kirim FormData [cite: 133, 135]
-      const resp = await axios.post(
-        "http://localhost:3001/api/presensi/check-in",
+      formData.append("buktiFoto", blob, "checkin.jpg"); // Nama field harus 'buktiFoto' sesuai controller
+      formData.append("latitude", coords.latitude);
+      formData.append("longitude", coords.longitude);
+  
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data", // Header khusus untuk upload file
+        },
+      };
+  
+      const res = await axios.post(
+        "http://localhost:3001/api/presensi/checkin",
         formData,
-        { headers: { Authorization: `Bearer ${token}` } }
+        config
       );
-
-      setMessage(resp.data.message);
-      setImage(null); // Reset foto setelah sukses check-in
-
+  
+      setMessage(res.data.message);
+      setImage(null); // Reset foto setelah berhasil
     } catch (err) {
-      if (!handleSessionError(err)) {
-        setError(err.response?.data?.message || "Gagal Check-In.");
-      }
+      setError(err.response?.data?.message || "Terjadi kesalahan pada server");
     } finally {
       setLoading(false);
     }

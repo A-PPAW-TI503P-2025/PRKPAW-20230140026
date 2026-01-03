@@ -17,7 +17,6 @@ module.exports = {
           key: "id",
         },
         onUpdate: "CASCADE",
-        onUpdate: "CASCADE",
       },
       checkIn: {
         allowNull: false,
